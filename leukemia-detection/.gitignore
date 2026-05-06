@@ -1,0 +1,48 @@
+# Data — never commit raw genomic data to GitHub
+data/raw/
+data/processed/
+*.csv
+*.tsv
+*.idat
+*.npy
+*.h5
+*.hdf5
+
+# Models — too large for git, use git-lfs or cloud storage
+results/models/*.pkl
+results/models/*.joblib
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep placeholder files
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!results/figures/.gitkeep
+!results/models/.gitkeep
