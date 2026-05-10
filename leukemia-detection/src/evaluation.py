@@ -1,10 +1,5 @@
 """
 evaluation.py
-=============
-Compute and report classification metrics on the held-out test set.
-
-All evaluation is performed ONLY on the test set, using models and
-preprocessing parameters derived exclusively from training data.
 """
 
 import numpy as np
@@ -23,9 +18,6 @@ from sklearn.metrics import (
 )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Single-model Evaluation
-# ─────────────────────────────────────────────────────────────────────────────
 
 def evaluate_model(
     model,
@@ -66,21 +58,8 @@ def evaluate_model(
         "cm"            : confusion_matrix(y_test, y_pred),
     }
 
-    if verbose:
-        print(f"\n  {model_name}")
-        print(f"    AUC-ROC       : {result['auc']:.4f}")
-        print(f"    F1-Score      : {result['f1']:.4f}")
-        print(f"    Precision     : {result['precision']:.4f}")
-        print(f"    Recall        : {result['recall']:.4f}")
-        print(f"    Accuracy      : {result['accuracy']:.4f}")
-        print(f"    Avg Precision : {result['avg_precision']:.4f}")
-
     return result
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Multi-model Evaluation
-# ─────────────────────────────────────────────────────────────────────────────
 
 def evaluate_all(
     fitted_models: dict,
@@ -143,10 +122,6 @@ def results_to_dataframe(results: list[dict]) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Curve Helpers (for plotting)
-# ─────────────────────────────────────────────────────────────────────────────
-
 def get_roc_curve(y_test: np.ndarray, y_prob: np.ndarray) -> tuple:
     """Return (fpr, tpr, thresholds) for ROC curve plotting."""
     return roc_curve(y_test, y_prob)
@@ -165,4 +140,3 @@ def print_classification_report(
     """Print full sklearn classification report."""
     if target_names is None:
         target_names = ["Normal", "Leukemia"]
-    print(classification_report(y_test, y_pred, target_names=target_names))

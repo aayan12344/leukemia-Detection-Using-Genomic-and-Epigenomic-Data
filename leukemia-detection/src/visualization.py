@@ -1,10 +1,6 @@
 """
 visualization.py
-================
-All plotting functions for the leukemia detection pipeline.
 
-Each function is self-contained: pass in the data, get back a figure.
-Call fig.savefig(path) to save, or plt.show() to display interactively.
 """
 
 import numpy as np
@@ -16,7 +12,6 @@ import seaborn as sns
 from sklearn.decomposition import PCA
 from sklearn.metrics import roc_curve, precision_recall_curve
 
-# ─── Color palette ────────────────────────────────────────────────────────────
 CLASSIFIER_COLORS = {
     "SVM (RBF)"         : "#E63946",
     "Random Forest"     : "#2A9D8F",
@@ -238,8 +233,7 @@ def plot_methylation_heatmap(
         fig, ax = plt.subplots(figsize=(6, 4), facecolor=DARK_BG)
     _dark_ax(ax)
 
-    # scores are over original features; heatmap uses already-selected matrix
-    # so just show top n_top columns of the (already selected) X_train
+
     n_show = min(n_top, X_train.shape[1])
     top_idx = np.arange(n_show)
     hm_data = X_train[:, top_idx]
@@ -290,10 +284,6 @@ def plot_metrics_heatmap(
     ax.tick_params(colors="#aaaaaa", labelsize=8)
     return fig or ax.figure
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Dashboard: All plots in one figure
-# ─────────────────────────────────────────────────────────────────────────────
 
 def plot_dashboard(
     results: list[dict],
@@ -357,6 +347,83 @@ def plot_dashboard(
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=DARK_BG)
-        print(f"  [visualization] Saved dashboard → {save_path}")
 
     return fig
+
+
+
+
+def save_individual_plots(
+    results: list[dict],
+    results_df,
+    y_test: np.ndarray,
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_all: np.ndarray,
+    y_all: np.ndarray,
+    feature_set: str = "Methylation",
+    output_dir: str = "results/figures/",
+) -> None:
+    """
+    Save each plot as its own standalone PNG file.
+
+    Output files
+    ------------
+    01_roc_curves.png
+    02_precision_recall.png
+    03_confusion_matrix.png
+    04_metrics_heatmap.png
+    05_pca.png
+    06_methylation_heatmap.png
+    07_auc_comparison.png
+    """
+    from pathlib import Path
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    best = max(results, key=lambda r: r["auc"])
+
+    def _save(fig, name):
+        path = str(out / name)
+        fig.savefig(path, dpi=150, bbox_inches="tight", facecolor=DARK_BG)
+        plt.close(fig)
+
+    # 1. ROC Curves
+    fig, ax = plt.subplots(figsize=(7, 5), facecolor=DARK_BG)
+    plot_roc_curves(results, y_test, feature_set=feature_set, ax=ax)
+    _save(fig, "01_roc_curves.png")
+
+    # 2. Precision-Recall Curves
+    fig, ax = plt.subplots(figsize=(7, 5), facecolor=DARK_BG)
+    plot_pr_curves(results, y_test, feature_set=feature_set, ax=ax)
+    _save(fig, "02_precision_recall.png")
+
+    # 3. Confusion Matrix (best model)
+    fig, ax = plt.subplots(figsize=(5, 4), facecolor=DARK_BG)
+    plot_confusion_matrix(
+        best["cm"],
+        title=f"Confusion Matrix — {best['classifier']}\n"
+              f"AUC={best['auc']:.3f}  F1={best['f1']:.3f}",
+        ax=ax,
+    )
+    _save(fig, "03_confusion_matrix.png")
+
+    # 4. Metrics Heatmap
+    fig, ax = plt.subplots(figsize=(9, 4), facecolor=DARK_BG)
+    plot_metrics_heatmap(results_df, feature_set=feature_set, ax=ax)
+    _save(fig, "04_metrics_heatmap.png")
+
+    # 5. PCA
+    fig, ax = plt.subplots(figsize=(6, 5), facecolor=DARK_BG)
+    plot_pca(X_all, y_all, title="PCA — Top 500 Selected CpGs", ax=ax)
+    _save(fig, "05_pca.png")
+
+    # 6. Methylation Heatmap
+    fig, ax = plt.subplots(figsize=(8, 5), facecolor=DARK_BG)
+    plot_methylation_heatmap(X_train, y_train, selector=None, ax=ax)
+    _save(fig, "06_methylation_heatmap.png")
+
+    # 7. AUC Comparison Bar Chart
+    fig, ax = plt.subplots(figsize=(10, 4), facecolor=DARK_BG)
+    plot_auc_comparison(results_df, ax=ax)
+    _save(fig, "07_auc_comparison.png")

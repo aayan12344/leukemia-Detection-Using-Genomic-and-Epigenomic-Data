@@ -1,11 +1,5 @@
 """
 models.py
-=========
-Classifier definitions, cross-validation training, and model persistence.
-
-All models are trained with 5-fold stratified cross-validation on the
-training set. The best model (by CV AUC) is then re-fit on the full
-training set before final evaluation.
 """
 
 import joblib
@@ -19,25 +13,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import StratifiedKFold, cross_validate
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Classifier Registry
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def get_classifiers(random_state: int = 42) -> dict:
-    """
-    Return a dictionary of classifier instances with sensible defaults.
 
-    These are good starting points — use train_with_cv() to tune further
-    via GridSearchCV or RandomizedSearchCV.
-
-    Parameters
-    ----------
-    random_state : seed for reproducibility
-
-    Returns
-    -------
-    dict : {name: sklearn estimator}
-    """
     return {
         "SVM (RBF)": SVC(
             kernel="rbf",
@@ -78,9 +57,7 @@ def get_classifiers(random_state: int = 42) -> dict:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Cross-Validation Training
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def train_with_cv(
     classifiers: dict,
@@ -131,8 +108,6 @@ def train_with_cv(
         }
         auc_mean, auc_std = cv_results[name]["roc_auc"]
         f1_mean,  f1_std  = cv_results[name]["f1"]
-        print(f"  {name:22s}  CV AUC={auc_mean:.4f}±{auc_std:.4f}  "
-              f"F1={f1_mean:.4f}±{f1_std:.4f}")
 
     return cv_results
 
@@ -160,7 +135,6 @@ def fit_final_models(
     for name, clf in classifiers.items():
         clf.fit(X_train, y_train)
         fitted[name] = clf
-        print(f"  Fitted: {name}")
     return fitted
 
 
@@ -186,13 +160,9 @@ def select_best_model(
         key=lambda name: cv_results[name][metric][0],
     )
     best_score = cv_results[best_name][metric][0]
-    print(f"  Best model by {metric}: {best_name} ({best_score:.4f})")
     return best_name
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Model Persistence
-# ─────────────────────────────────────────────────────────────────────────────
 
 def save_model(model, path: str | Path) -> None:
     """
@@ -205,7 +175,6 @@ def save_model(model, path: str | Path) -> None:
     """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, path)
-    print(f"  [models] Saved model → {path}")
 
 
 def load_model(path: str | Path):
@@ -221,5 +190,4 @@ def load_model(path: str | Path):
     Fitted sklearn estimator
     """
     model = joblib.load(path)
-    print(f"  [models] Loaded model ← {path}")
     return model

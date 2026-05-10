@@ -1,17 +1,6 @@
 """
 feature_selection.py
-====================
-Feature selection methods for high-dimensional genomic data.
 
-All selectors are fit on TRAINING data only, then applied to test data.
-This prevents information leakage from the test set.
-
-Methods available:
-  - ANOVA F-test       (fast, interpretable univariate filter)
-  - Variance threshold (remove near-constant features post-split)
-  - Top-k variable     (select most variable features — unsupervised)
-  - LASSO              (L1 regularization, embedded method)
-  - Multi-omic fusion  (combine selected features across modalities)
 """
 
 import numpy as np
@@ -20,22 +9,9 @@ from sklearn.linear_model import LassoCV
 from sklearn.preprocessing import StandardScaler
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Univariate: ANOVA F-test
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 class AnovaSelector:
-    """
-    Select top-k features by ANOVA F-test (equivalent to two-sample t-test
-    for binary classification).
-
-    Inspired by differential methylation / differential expression analysis.
-    Fit on training data, then transform both train and test identically.
-
-    Parameters
-    ----------
-    k : number of top features to select
-    """
 
     def __init__(self, k: int = 500):
         self.k = k
@@ -74,20 +50,8 @@ class AnovaSelector:
         return self.selected_mask.sum()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Top-k Most Variable (unsupervised, no label leakage risk)
-# ─────────────────────────────────────────────────────────────────────────────
 
 class TopVariableSelector:
-    """
-    Select the k features with the highest variance in the training set.
-    Unsupervised — does not use labels, so leakage risk is minimal.
-    Commonly used as a first-pass filter before supervised selection.
-
-    Parameters
-    ----------
-    k : number of top-variance features to keep
-    """
 
     def __init__(self, k: int = 1000):
         self.k = k
@@ -112,23 +76,8 @@ class TopVariableSelector:
         return self._selected_indices
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LASSO (L1 regularization) — embedded method
-# ─────────────────────────────────────────────────────────────────────────────
 
 class LassoSelector:
-    """
-    Use Lasso regression (L1 penalty) with cross-validated alpha to select
-    features. Features with non-zero coefficients are retained.
-
-    Better at handling correlated features than ANOVA (which treats each
-    feature independently).
-
-    Parameters
-    ----------
-    max_features : cap on selected features (None = no cap)
-    cv           : number of cross-validation folds for alpha selection
-    """
 
     def __init__(self, max_features: int | None = 500, cv: int = 5):
         self.max_features = max_features
@@ -154,8 +103,6 @@ class LassoSelector:
             self._selected_mask = mask
 
         n_sel = self._selected_mask.sum()
-        print(f"  [LassoSelector] Selected {n_sel} features "
-              f"(alpha={self._lasso.alpha_:.4f})")
         return X[:, self._selected_mask]
 
     def transform(self, X: np.ndarray) -> np.ndarray:
@@ -168,27 +115,11 @@ class LassoSelector:
         return self._selected_mask
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Multi-omic Fusion
-# ─────────────────────────────────────────────────────────────────────────────
 
 def early_fusion(
     *arrays: np.ndarray,
 ) -> np.ndarray:
-    """
-    Early fusion: horizontal concatenation of feature arrays.
-    The simplest multi-omic strategy — all modalities concatenated into
-    a single feature vector before model training.
 
-    Parameters
-    ----------
-    *arrays : 2-D arrays of shape (n_samples, n_features_i)
-              Must all have the same n_samples.
-
-    Returns
-    -------
-    Concatenated array of shape (n_samples, sum(n_features_i))
-    """
     n_rows = arrays[0].shape[0]
     for i, arr in enumerate(arrays):
         if arr.shape[0] != n_rows:
@@ -197,8 +128,6 @@ def early_fusion(
                 f"Array 0 has {n_rows}, array {i} has {arr.shape[0]}."
             )
     fused = np.hstack(arrays)
-    print(f"  [early_fusion] Fused {len(arrays)} modalities → "
-          f"{fused.shape[1]} total features")
     return fused
 
 
@@ -212,28 +141,7 @@ def select_features(
     k_expr:       int = 300,
     method:       str = "anova",
 ) -> dict:
-    """
-    Run feature selection on both modalities and return all feature matrices
-    (single-omic and multi-omic) ready for model training.
-
-    Parameters
-    ----------
-    X_meth_train / X_meth_test : methylation train/test arrays
-    X_expr_train / X_expr_test : expression train/test arrays
-    y_train                    : labels (training only)
-    k_meth                     : features to select from methylation
-    k_expr                     : features to select from expression
-    method                     : "anova" | "topvar" | "lasso"
-
-    Returns
-    -------
-    dict with keys:
-      meth_train, meth_test     : selected methylation features
-      expr_train, expr_test     : selected expression features
-      multi_train, multi_test   : early-fused multi-omic features
-      meth_selector             : fitted selector object (methylation)
-      expr_selector             : fitted selector object (expression)
-    """
+    
     Selector = {
         "anova"  : AnovaSelector,
         "topvar" : TopVariableSelector,
@@ -243,7 +151,6 @@ def select_features(
     if Selector is None:
         raise ValueError(f"method must be 'anova', 'topvar', or 'lasso'")
 
-    print(f"[feature_selection] Method={method}  k_meth={k_meth}  k_expr={k_expr}")
 
     meth_sel = Selector(k=k_meth)
     expr_sel = Selector(k=k_expr)

@@ -1,15 +1,5 @@
 """
 preprocessing.py
-================
-Sample and feature filtering, imputation, and scaling.
-
-CRITICAL DESIGN RULE
---------------------
-All sklearn transformers (imputers, scalers) must be fit ONLY on training
-data, then applied identically to the test set. This module enforces that
-pattern via the Preprocessor class which holds fitted objects.
-
-Never call fit() or fit_transform() on test data.
 """
 
 import numpy as np
@@ -18,9 +8,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Feature / Sample Filtering  (applied to full dataset BEFORE splitting)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def filter_missing(
     df: pd.DataFrame,
@@ -43,18 +30,10 @@ def filter_missing(
     if axis == "features":
         miss_rate = df.isna().mean(axis=0)
         keep = miss_rate[miss_rate <= threshold].index
-        removed = df.shape[1] - len(keep)
-        if removed:
-            print(f"  [filter_missing] Removed {removed} features "
-                  f"(>{threshold*100:.0f}% missing)")
         return df[keep]
     elif axis == "samples":
         miss_rate = df.isna().mean(axis=1)
         keep = miss_rate[miss_rate <= threshold].index
-        removed = df.shape[0] - len(keep)
-        if removed:
-            print(f"  [filter_missing] Removed {removed} samples "
-                  f"(>{threshold*100:.0f}% missing)")
         return df.loc[keep]
     else:
         raise ValueError("axis must be 'features' or 'samples'")
@@ -79,9 +58,6 @@ def filter_low_variance(
     """
     variances = df.var(axis=0, skipna=True)
     keep = variances[variances > threshold].index
-    removed = df.shape[1] - len(keep)
-    if removed:
-        print(f"  [filter_low_variance] Removed {removed} near-zero-variance features")
     return df[keep]
 
 
@@ -91,9 +67,6 @@ def remove_duplicate_samples(df: pd.DataFrame) -> pd.DataFrame:
     """
     n_before = len(df)
     df = df[~df.index.duplicated(keep="first")]
-    removed = n_before - len(df)
-    if removed:
-        print(f"  [remove_duplicates] Removed {removed} duplicate samples")
     return df
 
 
@@ -117,7 +90,6 @@ def align_samples(
     for df in dfs[1:]:
         common = common.intersection(df.index)
     n_common = len(common)
-    print(f"  [align_samples] {n_common} common samples across {len(dfs)} modalities")
     return tuple(df.loc[common] for df in dfs)
 
 
@@ -149,7 +121,6 @@ def clean_dataset(
     -------
     Cleaned (meth_df, expr_df, labels)
     """
-    print("[preprocessing] Cleaning dataset...")
 
     meth_df = filter_missing(meth_df, threshold=meth_missing_threshold)
     meth_df = filter_low_variance(meth_df, threshold=meth_var_threshold)
@@ -162,13 +133,9 @@ def clean_dataset(
     meth_df, expr_df = align_samples(meth_df, expr_df)
     labels = labels[:len(meth_df)]
 
-    print(f"  Methylation: {meth_df.shape}  |  Expression: {expr_df.shape}")
     return meth_df, expr_df, labels
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Preprocessor Class  (imputation + scaling, fit on train, apply to both)
-# ─────────────────────────────────────────────────────────────────────────────
 
 class OmicsPreprocessor:
     """

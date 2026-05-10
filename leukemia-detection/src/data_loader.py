@@ -1,12 +1,6 @@
 """
 data_loader.py
-==============
-Functions for loading and simulating leukemia genomic/epigenomic data.
 
-Supported sources:
-  - Simulated data (for development & testing)
-  - Local CSV files (processed TCGA / GEO exports)
-  - GEO download via GEOparse (optional dependency)
 
 Real data sources:
   TCGA-LAML / TARGET-ALL  →  GDC Data Portal (https://portal.gdc.cancer.gov)

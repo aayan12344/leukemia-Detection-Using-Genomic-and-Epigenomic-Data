@@ -3,7 +3,7 @@
 Binary classification of AML leukemia vs. normal bone marrow
 
 **Dataset:** 146 samples (106 AML · 40 Normal) across two GEO cohorts — GSE58477 + GSE63409  
-**Best result:** AUC = 1.0 · F1 = 0.93 · Accuracy = 90%
+**Best result:** AUC = 1.0 · F`1 = 0.93 · Accuracy = 90%
 
 ---
 

@@ -46,3 +46,11 @@ Thumbs.db
 !data/processed/.gitkeep
 !results/figures/.gitkeep
 !results/models/.gitkeep
+
+# Test cache
+.pytest_cache/
+
+# Result figures
+results/figures/*.png
+
+
